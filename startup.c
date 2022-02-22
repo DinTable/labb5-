@@ -87,6 +87,115 @@ void init_app(void) {
     *GPIO_MODER = 0x55005555;
 }
 
+void ascii_ctrl_bit_set(unsigned char x){
+	char c;
+	c = *GPIO_ODR_LOW;
+	*GPIO_ODR_LOW = B_SELECT | x | c; // Select alltid 1 i vårt fall och sätt x biten till 1.
+}
+
+void ascii_ctrl_bit_clear(unsigned char x){
+	char c;
+	c = *GPIO_ODR_LOW;
+	c = c & ~x; // detta gör att x biten nollställs medan alla andra bitar behåller sina värden.
+	*GPIO_ODR_LOW = B_SELECT | c; // Select alltid 1
+}
+
+void ascii_write_controller(unsigned char byte){	
+	ascii_ctrl_bit_set(B_E); // E = 1 betyder att arbetscyklen startas
+	*GPIO_ODR_HIGH = byte;
+	ascii_ctrl_bit_clear(B_E); // Efter att uppgiften utförts så avslutar vi arbetscykeln.
+	delay_250ns();
+}
+	
+
+unsigned char ascii_read_controller(void){
+	unsigned char c;
+	ascii_ctrl_bit_set(B_E); // Starta arbetscyklen
+	
+	delay_250ns(); // Vänta minst 360 ns innan datan är förberedd av ascii displayen för att läsas
+	delay_250ns();
+	
+	c = *GPIO_IDR_HIGH;
+	
+	ascii_ctrl_bit_clear(B_E);
+	
+	return c;
+}
+
+void ascii_write_cmd(unsigned char command){
+	ascii_ctrl_bit_clear(B_RS);
+	ascii_ctrl_bit_clear(B_RW);
+	ascii_write_controller(command);
+}
+
+void ascii_write_data(unsigned char data){
+	ascii_ctrl_bit_set(B_RS);
+	ascii_ctrl_bit_clear(B_RW);
+	ascii_write_controller(data);
+}
+
+unsigned char ascii_read_status(void){
+	char c;
+	*GPIO_MODER = 0x00005555; //sätter bit 8-15 i porten (dataregistret för ascii displayen) till ingångar som förberedelse för att ascii_read_controller ska läsa från dem senare.
+	ascii_ctrl_bit_set(B_RW);
+	ascii_ctrl_bit_clear(B_RS);
+	c = ascii_read_controller();
+	
+	*GPIO_MODER = 0x55555555; //återställer dataregistret till utgång
+	
+	return c;
+}
+
+unsigned char ascii_read_data(void){
+	char c;
+	*GPIO_MODER = 0x00005555;  
+	ascii_ctrl_bit_set(B_RW);
+	ascii_ctrl_bit_set(B_RS); // som ovan men nu är RS = 1 för att vi läser data istället för status
+	c = ascii_read_controller();
+	
+	*GPIO_MODER = 0x55555555;
+	
+	return c;
+}
+
+void ascii_command(command){
+	while( ascii_read_status() & 0x80 ); // Vänta så länge ascii displayen är upptagen
+	delay_micro(8);
+	
+	ascii_write_cmd(command);
+	
+	if(command == CLEAR_DISPLAY){
+		delay_milli(2);
+	}
+	else if(command == FUNCTION_SET || command == DISPLAY_CONTROL || ENTRY_MODE_SET){
+		delay_micro(39);
+	}
+}
+
+void ascii_init(void){
+	ascii_ctrl_bit_clear(B_RS); // För dessa kommandon skall RS och RW = 0
+	ascii_ctrl_bit_clear(B_RW);
+	
+	ascii_command(FUNCTION_SET);
+	ascii_command(DISPLAY_CONTROL);
+	ascii_command(CLEAR_DISPLAY);
+}
+
+void ascii_write_char(unsigned char c){
+	while( ascii_read_status() & 0x80 ); // Vänta så länge ascii displayen är upptagen
+	delay_micro(8);
+	
+	ascii_write_data(c);
+}
+
+void ascii_gotoxy(int x, int y){	
+	int address = x-1;
+	if (y == 2){
+		address = address + 0x40; // Teckenminnet har plats för 64 tecken per rad (20 visas), därför blir addressen för rad 2 lika med 0x40 (64 i decimal)
+	}
+	ascii_write_cmd(0x80 | address);
+}
+
 int kbdGetCol(void) { /* Om någon tangent (i aktiverad rad)
 * är nedtryckt, returnera dess kolumnnummer,
 * annars, returnera 0 */
@@ -706,7 +815,7 @@ static OBJECT bird_flap_obj = {
 	set_object_speed
 };
 
-void reset_obj_position(POBJECT ot1, POBJECT ob1, POBJECT ot2, POBJECT ob2){
+void reset_obj_position(POBJECT ot1, POBJECT ob1, POBJECT ot2, POBJECT ob2, POBJECT bs, POBJECT bf){
 	ot1->posx = 60;
 	ot1->posy = -29;
 	ob1->posx = 60;
@@ -716,18 +825,31 @@ void reset_obj_position(POBJECT ot1, POBJECT ob1, POBJECT ot2, POBJECT ob2){
 	ot2->posy = -29;
 	ob2->posx = 130;
 	ob2->posy = 43;
+	
+	bs->posy = 30;
+	bf->posy = 30;
 }
 
 void main(void){
 	init_app();
+	
 	graphic_initialize();
 	graphic_clear_screen();
 	timer6_init();
 	
+	char *s;
+
+	char counter[] = "Points: ";
+	
+	ascii_gotoxy(1,1);
+	s = counter;
+	
+	while(*s){
+		ascii_write_char(*s++);
+	}
+	
 	short random = 0;
 	int points;
-	short the_y_pos_bird; 
-	short the_y_speed_bird;
 	
 	static POBJECT obstacle_top_1 = &obstacle_top_obj_1;
 	static POBJECT obstacle_bottom_1 = &obstacle_bottom_obj_1;
@@ -736,12 +858,15 @@ void main(void){
 	static POBJECT bird = &bird_soar_obj;
 	static POBJECT start_screen = &starting_screen_obj;
 	
+	short the_y_pos_bird = bird->posy; 
+	short the_y_speed_bird = bird->diry;
+	
 	set_obstacle_speed(-6, 0, obstacle_top_1, obstacle_bottom_1, obstacle_top_2, obstacle_bottom_2);
 
 	while(1){
 		points = 0; 
 		graphic_clear_screen();
-		reset_obj_position(obstacle_top_1, obstacle_bottom_1, obstacle_top_2, obstacle_bottom_2);
+		reset_obj_position(obstacle_top_1, obstacle_bottom_1, obstacle_top_2, obstacle_bottom_2, &bird_soar_obj, &bird_flap_obj);
 		start_screen->draw(start_screen);
 		while(keyb_enhanced() != 5){
 			bird = &bird_soar_obj;
