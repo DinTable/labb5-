@@ -1,0 +1,121 @@
+#include "defines.h"
+
+void ascii_ctrl_bit_set(unsigned char x, unsigned char select){
+	char c;
+	c = *GPIO_E_ODR_LOW;
+	if(select){
+		*GPIO_E_ODR_LOW = B_SELECT | x | c; // Select alltid 1 i vårt fall och sätt x biten till 1.
+	}
+	else{
+		*GPIO_E_ODR_LOW = x | c;
+	}
+}
+
+void ascii_ctrl_bit_clear(unsigned char x, unsigned char select){
+	char c;
+	c = *GPIO_E_ODR_LOW;
+	c = c & ~x; // detta gör att x biten nollställs medan alla andra bitar behåller sina värden.
+	if(select){
+		*GPIO_E_ODR_LOW = B_SELECT | c; // Select alltid 1
+	}
+	else{
+		*GPIO_E_ODR_LOW = c;
+	}
+	
+}
+
+void ascii_write_controller(unsigned char byte){	
+	ascii_ctrl_bit_set(B_E, B_SELECT); // E = 1 betyder att arbetscyklen startas
+	*GPIO_E_ODR_HIGH = byte;
+	ascii_ctrl_bit_clear(B_E, B_SELECT); // Efter att uppgiften utförts så avslutar vi arbetscykeln.
+	delay_250ns();
+}
+	
+
+unsigned char ascii_read_controller(void){
+	unsigned char c;
+	ascii_ctrl_bit_set(B_E, B_SELECT); // Starta arbetscyklen
+	
+	delay_250ns(); // Vänta minst 360 ns innan datan är förberedd av ascii displayen för att läsas
+	delay_250ns();
+	
+	c = *GPIO_E_IDR_HIGH;
+	
+	ascii_ctrl_bit_clear(B_E, B_SELECT);
+	
+	return c;
+}
+
+void ascii_write_cmd(unsigned char command){
+	ascii_ctrl_bit_clear(B_RS, B_SELECT);
+	ascii_ctrl_bit_clear(B_RW, B_SELECT);
+	ascii_write_controller(command);
+}
+
+void ascii_write_data(unsigned char data){
+	ascii_ctrl_bit_set(B_RS, B_SELECT);
+	ascii_ctrl_bit_clear(B_RW, B_SELECT);
+	ascii_write_controller(data);
+}
+
+unsigned char ascii_read_status(void){
+	char c;
+	*GPIO_E_MODER = 0x00005555; //sätter bit 8-15 i porten (dataregistret för ascii displayen) till ingångar som förberedelse för att ascii_read_controller ska läsa från dem senare.
+	ascii_ctrl_bit_set(B_RW, B_SELECT);
+	ascii_ctrl_bit_clear(B_RS, B_SELECT);
+	c = ascii_read_controller();
+	
+	*GPIO_E_MODER = 0x55555555; //återställer dataregistret till utgång
+	
+	return c;
+}
+
+unsigned char ascii_read_data(void){
+	char c;
+	*GPIO_E_MODER = 0x00005555;  
+	ascii_ctrl_bit_set(B_RW, B_SELECT);
+	ascii_ctrl_bit_set(B_RS, B_SELECT); // som ovan men nu är RS = 1 för att vi läser data istället för status
+	c = ascii_read_controller();
+	
+	*GPIO_E_MODER = 0x55555555;
+	
+	return c;
+}
+
+void ascii_command(command){
+	while( ascii_read_status() & 0x80 ); // Vänta så länge ascii displayen är upptagen
+	delay_micro(8);
+	
+	ascii_write_cmd(command);
+	
+	if(command == CLEAR_DISPLAY){
+		delay_milli(2);
+	}
+	else if(command == FUNCTION_SET || command == DISPLAY_CONTROL || ENTRY_MODE_SET){
+		delay_micro(39);
+	}
+}
+
+void ascii_init(void){
+	ascii_ctrl_bit_clear(B_RS, B_SELECT); // För dessa kommandon skall RS och RW = 0
+	ascii_ctrl_bit_clear(B_RW, B_SELECT);
+	
+	ascii_command(FUNCTION_SET);
+	ascii_command(DISPLAY_CONTROL);
+	ascii_command(CLEAR_DISPLAY);
+}
+
+void ascii_write_char(unsigned char c){
+	while( ascii_read_status() & 0x80 ); // Vänta så länge ascii displayen är upptagen
+	delay_micro(8);
+	
+	ascii_write_data(c);
+}
+
+void ascii_gotoxy(int x, int y){	
+	int address = x-1;
+	if (y == 2){
+		address = address + 0x40; // Teckenminnet har plats för 64 tecken per rad (20 visas), därför blir addressen för rad 2 lika med 0x40 (64 i decimal)
+	}
+	ascii_write_cmd(0x80 | address);
+}

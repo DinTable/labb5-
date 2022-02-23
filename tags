@@ -1,2 +1,0 @@
-startup	C:\Users\rozkh\Desktop\MOP\labb5-\startup.c	/^void startup ( void )$/;"	function	line:6	signature:( void )	returns:void 
-main	C:\Users\rozkh\Desktop\MOP\labb5-\startup.c	/^void main(void){$/;"	function	line:14	signature:(void)	returns:void 
