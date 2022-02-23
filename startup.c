@@ -2,14 +2,24 @@
  *     startup.c
  */
 #define GPIO_D 			0x40020C00
-#define GPIO_MODER 		((volatile unsigned int *) (GPIO_D)) 
-#define GPIO_OTYPER 	((volatile unsigned int *) (GPIO_D+0x4))
-#define GPIO_OSPEEDR 	((volatile unsigned int *) (GPIO_D+0x8))
-#define GPIO_PUPDR 		((volatile unsigned int *) (GPIO_D+0xC))
-#define GPIO_IDR_LOW 	((volatile unsigned char *) (GPIO_D+0x10))
-#define GPIO_IDR_HIGH	((volatile unsigned char *) (GPIO_D+0x11))
-#define GPIO_ODR_LOW 	((volatile unsigned char *) (GPIO_D+0x14))
-#define GPIO_ODR_HIGH 	((volatile unsigned char *) (GPIO_D+0x15))
+#define GPIO_D_MODER 	((volatile unsigned int *) (GPIO_D)) 
+#define GPIO_D_OTYPER 	((volatile unsigned int *) (GPIO_D+0x4))
+#define GPIO_D_OSPEEDR 	((volatile unsigned int *) (GPIO_D+0x8))
+#define GPIO_D_PUPDR 	((volatile unsigned int *) (GPIO_D+0xC))
+#define GPIO_D_IDR_LOW 	((volatile unsigned char *) (GPIO_D+0x10))
+#define GPIO_D_IDR_HIGH	((volatile unsigned char *) (GPIO_D+0x11))
+#define GPIO_D_ODR_LOW 	((volatile unsigned char *) (GPIO_D+0x14))
+#define GPIO_D_ODR_HIGH 	((volatile unsigned char *) (GPIO_D+0x15))
+
+#define GPIO_E 0x40021000 
+#define GPIO_E_MODER ((volatile unsigned int *) (GPIO_E)) 
+#define GPIO_E_OTYPER ((volatile unsigned int *) (GPIO_E+0x4))
+#define GPIO_E_OSPEEDR ((volatile unsigned int *) (GPIO_E+0x8))
+#define GPIO_E_PUPDR ((volatile unsigned int *) (GPIO_E+0xC))
+#define GPIO_E_IDR_LOW ((volatile unsigned char *) (GPIO_E+0x10))
+#define GPIO_E_IDR_HIGH ((volatile unsigned char *) (GPIO_E+0x11))
+#define GPIO_E_ODR_LOW ((volatile unsigned char *) (GPIO_E+0x14))
+#define GPIO_E_ODR_HIGH ((volatile unsigned char *) (GPIO_E+0x15))
 
 #define STK 			0xE000E010
 #define STK_CTRL		((volatile unsigned int *) (STK))
@@ -22,10 +32,11 @@
 #define B_RW			2 //Read/Write, sätts till 1 vid läsning
 #define B_RS			1 //Denna bit ska vara 0 om kommando skrivs till eller status läses från displayen. 1 om data skrivs till eller läses från displayen.
 
-#define FUNCTION_SET 	0x38 //Dessa definitioner är enligt kommandotabellen i Rogers support klipp
+#define FUNCTION_SET 	0x30 //Dessa definitioner är enligt kommandotabellen i Rogers support klipp
 #define DISPLAY_CONTROL 0xF
 #define CLEAR_DISPLAY 	1
 #define ENTRY_MODE_SET	4
+
 #define MAX_POINTS		350
 #define SIMULATOR		1
 
@@ -34,6 +45,7 @@
 #define TIM6_ARR		((volatile unsigned short*) 0x4000102C)
 #define UDIS			(1<<1)
 #define CEN				(1<<0)
+
 #define STK_CTRL 		((volatile unsigned int *)(0xE000E010))  
 #define STK_LOAD 		((volatile unsigned int *)(0xE000E014))  
 #define STK_VAL 		((volatile unsigned int *)(0xE000E018)) 
@@ -84,25 +96,26 @@ void graphic_pixel_clear(int x, int y){
 }
 
 void init_app(void) {
-    *GPIO_MODER = 0x55005555;
+    *GPIO_D_MODER = 0x55005555;
+	*GPIO_E_MODER = 0x55555555;
 }
 
 void ascii_ctrl_bit_set(unsigned char x){
 	char c;
-	c = *GPIO_ODR_LOW;
-	*GPIO_ODR_LOW = B_SELECT | x | c; // Select alltid 1 i vårt fall och sätt x biten till 1.
+	c = *GPIO_D_ODR_LOW;
+	*GPIO_D_ODR_LOW = B_SELECT | x | c; // Select alltid 1 i vårt fall och sätt x biten till 1.
 }
 
 void ascii_ctrl_bit_clear(unsigned char x){
 	char c;
-	c = *GPIO_ODR_LOW;
+	c = *GPIO_D_ODR_LOW;
 	c = c & ~x; // detta gör att x biten nollställs medan alla andra bitar behåller sina värden.
-	*GPIO_ODR_LOW = B_SELECT | c; // Select alltid 1
+	*GPIO_D_ODR_LOW = B_SELECT | c; // Select alltid 1
 }
 
 void ascii_write_controller(unsigned char byte){	
 	ascii_ctrl_bit_set(B_E); // E = 1 betyder att arbetscyklen startas
-	*GPIO_ODR_HIGH = byte;
+	*GPIO_D_ODR_HIGH = byte;
 	ascii_ctrl_bit_clear(B_E); // Efter att uppgiften utförts så avslutar vi arbetscykeln.
 	delay_250ns();
 }
@@ -115,7 +128,7 @@ unsigned char ascii_read_controller(void){
 	delay_250ns(); // Vänta minst 360 ns innan datan är förberedd av ascii displayen för att läsas
 	delay_250ns();
 	
-	c = *GPIO_IDR_HIGH;
+	c = *GPIO_D_IDR_HIGH;
 	
 	ascii_ctrl_bit_clear(B_E);
 	
@@ -136,24 +149,24 @@ void ascii_write_data(unsigned char data){
 
 unsigned char ascii_read_status(void){
 	char c;
-	*GPIO_MODER = 0x00005555; //sätter bit 8-15 i porten (dataregistret för ascii displayen) till ingångar som förberedelse för att ascii_read_controller ska läsa från dem senare.
+	*GPIO_D_MODER = 0x00005555; //sätter bit 8-15 i porten (dataregistret för ascii displayen) till ingångar som förberedelse för att ascii_read_controller ska läsa från dem senare.
 	ascii_ctrl_bit_set(B_RW);
 	ascii_ctrl_bit_clear(B_RS);
 	c = ascii_read_controller();
 	
-	*GPIO_MODER = 0x55555555; //återställer dataregistret till utgång
+	*GPIO_D_MODER = 0x55555555; //återställer dataregistret till utgång
 	
 	return c;
 }
 
 unsigned char ascii_read_data(void){
 	char c;
-	*GPIO_MODER = 0x00005555;  
+	*GPIO_D_MODER = 0x00005555;  
 	ascii_ctrl_bit_set(B_RW);
 	ascii_ctrl_bit_set(B_RS); // som ovan men nu är RS = 1 för att vi läser data istället för status
 	c = ascii_read_controller();
 	
-	*GPIO_MODER = 0x55555555;
+	*GPIO_D_MODER = 0x55555555;
 	
 	return c;
 }
@@ -200,7 +213,7 @@ int kbdGetCol(void) { /* Om någon tangent (i aktiverad rad)
 * är nedtryckt, returnera dess kolumnnummer,
 * annars, returnera 0 */
     unsigned char c;
-    c = *GPIO_IDR_HIGH;
+    c = *GPIO_D_IDR_HIGH;
     if (c & 0x8) return 4;
     if (c & 0x4) return 3;
     if (c & 0x2) return 2;
@@ -212,22 +225,22 @@ void kbdActivate(unsigned int row) { /* Aktivera angiven rad hos tangentbordet, 
 * deaktivera samtliga */
     switch (row) {
         case 1:
-            *GPIO_ODR_HIGH = 0x10;
+            *GPIO_D_ODR_HIGH = 0x10;
             break;
         case 2:
-            *GPIO_ODR_HIGH = 0x20;
+            *GPIO_D_ODR_HIGH = 0x20;
             break;
         case 3:
-            *GPIO_ODR_HIGH = 0x40;
+            *GPIO_D_ODR_HIGH = 0x40;
             break;
         case 4:
-            *GPIO_ODR_HIGH = 0x80;
+            *GPIO_D_ODR_HIGH = 0x80;
             break;
         case 5:
-            *GPIO_ODR_HIGH = 0xF0;
+            *GPIO_D_ODR_HIGH = 0xF0;
             break;
         case 0:
-            *GPIO_ODR_HIGH = 0x00;
+            *GPIO_D_ODR_HIGH = 0x00;
             break;
     }
 }
@@ -250,7 +263,7 @@ void out7seg(unsigned char c) {
     if (c > 16) kbdActivate(0);
     unsigned char segCodes[] = {0x3F, 0x6, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x7, 0x7F, 0x67, 0x77, 0x7C, 0x39, 0x5E, 0x79,
                                 0x71};
-    *GPIO_ODR_LOW = segCodes[c];
+    *GPIO_D_ODR_LOW = segCodes[c];
 
 }
 
@@ -832,18 +845,16 @@ void reset_obj_position(POBJECT ot1, POBJECT ob1, POBJECT ot2, POBJECT ob2, POBJ
 
 void main(void){
 	init_app();
-	
-	graphic_initialize();
+	graphic_initialize(); //initierar port E enligt boken
 	graphic_clear_screen();
 	timer6_init();
+	ascii_init();
 	
 	char *s;
-
 	char counter[] = "Points: ";
 	
 	ascii_gotoxy(1,1);
 	s = counter;
-	
 	while(*s){
 		ascii_write_char(*s++);
 	}
