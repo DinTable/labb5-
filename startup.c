@@ -215,7 +215,6 @@ void main(void){
 				bird->diry = -4; 
 				bird->move(bird);
 				delay_milli(50000);
-	
 			} 
 			if(bird->diry < 0){
 				bird->diry += 2;
