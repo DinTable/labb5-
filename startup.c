@@ -102,20 +102,20 @@ void init_app(void) {
 
 void ascii_ctrl_bit_set(unsigned char x){
 	char c;
-	c = *GPIO_D_ODR_LOW;
+	c = *GPIO_E_ODR_LOW;
 	*GPIO_D_ODR_LOW = B_SELECT | x | c; // Select alltid 1 i vårt fall och sätt x biten till 1.
 }
 
 void ascii_ctrl_bit_clear(unsigned char x){
 	char c;
-	c = *GPIO_D_ODR_LOW;
+	c = *GPIO_E_ODR_LOW;
 	c = c & ~x; // detta gör att x biten nollställs medan alla andra bitar behåller sina värden.
-	*GPIO_D_ODR_LOW = B_SELECT | c; // Select alltid 1
+	*GPIO_E_ODR_LOW = B_SELECT | c; // Select alltid 1
 }
 
 void ascii_write_controller(unsigned char byte){	
 	ascii_ctrl_bit_set(B_E); // E = 1 betyder att arbetscyklen startas
-	*GPIO_D_ODR_HIGH = byte;
+	*GPIO_E_ODR_HIGH = byte;
 	ascii_ctrl_bit_clear(B_E); // Efter att uppgiften utförts så avslutar vi arbetscykeln.
 	delay_250ns();
 }
@@ -128,7 +128,7 @@ unsigned char ascii_read_controller(void){
 	delay_250ns(); // Vänta minst 360 ns innan datan är förberedd av ascii displayen för att läsas
 	delay_250ns();
 	
-	c = *GPIO_D_IDR_HIGH;
+	c = *GPIO_E_IDR_HIGH;
 	
 	ascii_ctrl_bit_clear(B_E);
 	
@@ -149,24 +149,24 @@ void ascii_write_data(unsigned char data){
 
 unsigned char ascii_read_status(void){
 	char c;
-	*GPIO_D_MODER = 0x00005555; //sätter bit 8-15 i porten (dataregistret för ascii displayen) till ingångar som förberedelse för att ascii_read_controller ska läsa från dem senare.
+	*GPIO_E_MODER = 0x00005555; //sätter bit 8-15 i porten (dataregistret för ascii displayen) till ingångar som förberedelse för att ascii_read_controller ska läsa från dem senare.
 	ascii_ctrl_bit_set(B_RW);
 	ascii_ctrl_bit_clear(B_RS);
 	c = ascii_read_controller();
 	
-	*GPIO_D_MODER = 0x55555555; //återställer dataregistret till utgång
+	*GPIO_E_MODER = 0x55555555; //återställer dataregistret till utgång
 	
 	return c;
 }
 
 unsigned char ascii_read_data(void){
 	char c;
-	*GPIO_D_MODER = 0x00005555;  
+	*GPIO_E_MODER = 0x00005555;  
 	ascii_ctrl_bit_set(B_RW);
 	ascii_ctrl_bit_set(B_RS); // som ovan men nu är RS = 1 för att vi läser data istället för status
 	c = ascii_read_controller();
 	
-	*GPIO_D_MODER = 0x55555555;
+	*GPIO_E_MODER = 0x55555555;
 	
 	return c;
 }
@@ -855,6 +855,7 @@ void main(void){
 	
 	ascii_gotoxy(1,1);
 	s = counter;
+	
 	while(*s){
 		ascii_write_char(*s++);
 	}

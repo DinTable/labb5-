@@ -1,44 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Session Name="C:\Users\rozkh\Desktop\MOP\labb5-\Labb5.workspace">
+<Session Name="/Users/rozgar/Desktop/MOP/labb5-/Labb5.workspace">
   <int Value="0" Name="m_selectedTab"/>
-  <wxString Value="C:\Users\rozkh\Desktop\MOP\labb5-\Labb5.workspace" Name="m_workspaceName"/>
+  <wxString Value="/Users/rozgar/Desktop/MOP/labb5-/Labb5.workspace" Name="m_workspaceName"/>
   <TabInfoArray Name="TabInfoArray">
     <TabInfo>
-      <wxString Value="C:\Users\rozkh\Desktop\MOP\labb5-\startup.c" Name="FileName"/>
-      <int Value="461" Name="FirstVisibleLine"/>
-      <int Value="599" Name="CurrentLine"/>
+      <wxString Value="/Users/rozgar/Desktop/MOP/labb5-/startup.c" Name="FileName"/>
+      <int Value="263" Name="FirstVisibleLine"/>
+      <int Value="855" Name="CurrentLine"/>
       <wxArrayString Name="Bookmarks"/>
       <IntVector Name="CollapsedFolds">
-        <IntVectorItem Value="287"/>
-        <IntVectorItem Value="346"/>
-        <IntVectorItem Value="405"/>
-        <IntVectorItem Value="410"/>
-        <IntVectorItem Value="621"/>
-        <IntVectorItem Value="631"/>
-        <IntVectorItem Value="641"/>
-        <IntVectorItem Value="651"/>
-        <IntVectorItem Value="661"/>
+        <IntVectorItem Value="211"/>
+        <IntVectorItem Value="223"/>
+        <IntVectorItem Value="247"/>
+        <IntVectorItem Value="261"/>
+        <IntVectorItem Value="269"/>
+        <IntVectorItem Value="288"/>
+        <IntVectorItem Value="297"/>
+        <IntVectorItem Value="311"/>
+        <IntVectorItem Value="316"/>
+        <IntVectorItem Value="322"/>
+        <IntVectorItem Value="326"/>
+        <IntVectorItem Value="333"/>
+        <IntVectorItem Value="343"/>
+        <IntVectorItem Value="345"/>
+        <IntVectorItem Value="351"/>
+        <IntVectorItem Value="358"/>
+        <IntVectorItem Value="359"/>
+        <IntVectorItem Value="364"/>
+        <IntVectorItem Value="370"/>
+        <IntVectorItem Value="377"/>
+        <IntVectorItem Value="382"/>
+        <IntVectorItem Value="389"/>
+        <IntVectorItem Value="396"/>
+        <IntVectorItem Value="403"/>
+        <IntVectorItem Value="462"/>
+        <IntVectorItem Value="521"/>
+        <IntVectorItem Value="541"/>
+        <IntVectorItem Value="562"/>
+        <IntVectorItem Value="762"/>
+        <IntVectorItem Value="770"/>
+        <IntVectorItem Value="780"/>
+        <IntVectorItem Value="790"/>
+        <IntVectorItem Value="800"/>
+        <IntVectorItem Value="810"/>
+        <IntVectorItem Value="820"/>
+        <IntVectorItem Value="830"/>
       </IntVector>
     </TabInfo>
   </TabInfoArray>
   <SerializedObject Name="m_breakpoints">
-    <long Value="1" Name="Count"/>
-    <SerializedObject Name="Breakpoint0">
-      <wxString Value="C:\Users\rozkh\Desktop\MOP\labb5-\startup.c" Name="file"/>
-      <int Value="208" Name="lineno"/>
-      <wxString Value="" Name="function_name"/>
-      <wxString Value="" Name="memory_address"/>
-      <int Value="1" Name="bp_type"/>
-      <int Value="0" Name="watchpoint_type"/>
-      <wxString Value="" Name="watchpt_data"/>
-      <CData Name="commandlist"/>
-      <bool Value="0" Name="regex"/>
-      <bool Value="0" Name="is_temp"/>
-      <bool Value="1" Name="is_enabled"/>
-      <long Value="0" Name="ignore_number"/>
-      <wxString Value="" Name="conditions"/>
-      <int Value="0" Name="origin"/>
-    </SerializedObject>
+    <long Value="0" Name="Count"/>
   </SerializedObject>
   <wxString Value="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.inc;*.mm;*.m;*.xrc;*.plist;*.txt" Name="m_findInFilesMask"/>
 </Session>
